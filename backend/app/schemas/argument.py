@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.schemas.score import Rubric, ScoreResponse
+from app.schemas.topic import TopicResponse
 
 
 class ArgumentStatus(StrEnum):
@@ -49,3 +50,8 @@ class ArgumentSubmitResponse(BaseModel):
     id: UUID
     status: ArgumentStatus
     message: str
+
+
+class LeaderboardResponse(BaseModel):
+    topic: TopicResponse
+    arguments: list[ArgumentSummary]
