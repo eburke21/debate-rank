@@ -94,8 +94,14 @@ npx tsc --noEmit                 # Type-check only
 ### Frontend (TypeScript/React)
 - **UI library:** Chakra UI v3 — uses `createSystem()` / `defineConfig()`, NOT v2's `extendTheme()`.
 - **Rubric colors:** Defined as semantic tokens in `src/theme/index.ts` — use `rubric.logic`, `rubric.evidence`, `rubric.persuasion`, `rubric.originality` instead of raw color values.
-- **HTTP client:** axios (configured in `src/api/client.ts`).
+- **HTTP client:** axios (configured in `src/api/client.ts`). Base URL from `VITE_API_URL` env var (defaults to `http://localhost:8000`).
 - **Charts:** Recharts for data visualization.
+- **Pure function extraction:** `redistributeWeights()` and `computeComposite()` are exported as standalone pure functions from `hooks/useWeights.ts` — testable without React, reusable outside the hook (e.g., `Leaderboard.tsx` imports `computeComposite` directly).
+- **Derived state:** Use `useMemo` for computed values like weighted rankings — never `useEffect` + `setState` (causes double-render flicker).
+- **Framer Motion:** `motion.div` with `layout` prop for animated row reordering. `LayoutGroup` coordinates siblings, `AnimatePresence` handles enter/exit.
+- **Chakra v3 Slider API:** Compound components `Slider.Root` → `Slider.Control` → `Slider.Track` → `Slider.Range` + `Slider.Thumb`. Uses `onValueChange` (not `onChange`); value is always an array `[number]` even for single-thumb sliders.
+- **Responsive design:** Chakra's responsive object syntax `display={{ base: "none", md: "block" }}` for breakpoint-based visibility.
+- **Prop drilling:** Deliberate choice for current shallow tree (3 levels). Context/Redux not needed until depth increases.
 
 ## Project Structure
 
@@ -128,10 +134,23 @@ backend/
 
 frontend/src/
   theme/index.ts     # Chakra UI v3 system + rubric color tokens
-  api/client.ts      # Axios API client
-  components/        # React components
-  hooks/             # Custom hooks (useLeaderboard, useWeights, useArgumentPolling)
-  types/index.ts     # Shared TypeScript types
+  api/client.ts      # Axios API client (4 typed fetch functions)
+  types/index.ts     # TypeScript types mirroring backend schemas + RUBRICS array + RUBRIC_META
+  hooks/
+    useWeights.ts    # Weight redistribution + computeComposite (pure functions + React hook)
+    useLeaderboard.ts # Topic + arguments data fetching
+    useArgumentPolling.ts # (Phase 7 — live status polling)
+  components/
+    TopicHeader.tsx          # Topic title, description, argument count badge
+    WeightSlider.tsx         # Single Chakra v3 compound slider with rubric label
+    WeightSliderPanel.tsx    # 4 sliders + reset button + animated distribution bar
+    LeaderboardRow.tsx       # Rank badge + body preview + mini score bars + weighted score + layout animation
+    Leaderboard.tsx          # Weighted sort via useMemo + AnimatePresence + loading skeletons
+    ScoreRadarChart.tsx      # (Phase 7 — radar chart for argument detail)
+    JudgeCard.tsx            # (Phase 7 — judge rationale card)
+    ArgumentDetailDrawer.tsx # (Phase 7 — detail drawer)
+    SubmitArgumentModal.tsx  # (Phase 7 — submission modal)
+    ScoringProgress.tsx      # (Phase 7 — scoring progress indicator)
 ```
 
 ## Key Design Decisions
@@ -156,6 +175,10 @@ frontend/src/
 - **Judge test isolation:** Orchestrator tests use `monkeypatch.setattr("app.services.judge.evaluate_single_judge", mock)` to control per-rubric results. Single judge tests use injectable `client` parameter with `AsyncMock`.
 - **Seed data design:** 12 hand-crafted arguments with deliberate asymmetry across rubrics — each argument targets a specific archetype (data-heavy, vivid anecdote, contrarian take, etc.) so weight sliders produce visible ranking changes. Scores are live-evaluated, not hardcoded.
 - **Seed script invocation:** Run as `uv run python -m scripts.seed` (not `python scripts/seed.py`) so `app.*` imports resolve correctly. `scripts/__init__.py` exists for this purpose.
+- **Weight redistribution:** "Last item gets the remainder" pattern ensures `sum(weights) === 100` — `Math.round()` on all-but-last rubric, last rubric = `remaining - distributed`. Avoids rounding drift across 3 proportional calculations.
+- **Client-side composite scoring:** Weighted average recomputed in `useMemo` on every weight change — no backend round-trip. Only rubrics with non-null scores contribute (handles partial-status arguments).
+- **Animated leaderboard reordering:** Framer Motion's `layout` prop on each row enables spring-based positional animation (300ms) when sort order changes from weight adjustments.
+- **Distribution bar:** CSS `flex={weight}` on colored segments provides proportional visualization of current weights; `transition="flex 0.3s ease"` animates segment size changes.
 
 ## API Endpoints
 
