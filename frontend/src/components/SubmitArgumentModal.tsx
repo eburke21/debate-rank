@@ -104,7 +104,7 @@ export function SubmitArgumentModal({
         if (!e.open) handleClose();
       }}
       placement="center"
-      size="lg"
+      size={{ base: "full", md: "lg" }}
     >
       <Portal>
         <Dialog.Backdrop />
@@ -156,9 +156,9 @@ export function SubmitArgumentModal({
                       borderWidth="1px"
                       borderRadius="md"
                       borderColor="red.500"
-                      bg="red.50"
+                      bg={{ base: "red.50", _dark: "red.950" }}
                     >
-                      <Text fontSize="sm" color="red.700">
+                      <Text fontSize="sm" color={{ base: "red.700", _dark: "red.200" }}>
                         {submitError}
                       </Text>
                     </Box>

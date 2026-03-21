@@ -68,7 +68,7 @@ export function ArgumentDetailDrawer({
     <Drawer.Root
       open={isOpen}
       placement="end"
-      size="md"
+      size={{ base: "full", md: "md" }}
       onOpenChange={(e) => {
         if (!e.open) onClose();
       }}
@@ -100,9 +100,9 @@ export function ArgumentDetailDrawer({
                   borderWidth="1px"
                   borderRadius="md"
                   borderColor="red.500"
-                  bg="red.50"
+                  bg={{ base: "red.50", _dark: "red.950" }}
                 >
-                  <Text color="red.700">{error}</Text>
+                  <Text color={{ base: "red.700", _dark: "red.200" }}>{error}</Text>
                 </Box>
               )}
 

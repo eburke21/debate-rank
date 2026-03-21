@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Heading, Stack } from "@chakra-ui/react";
+import { Box, Button, Flex, Heading } from "@chakra-ui/react";
 import type { Rubric, Weights } from "../types/index.ts";
 import { RUBRICS } from "../types/index.ts";
 import { WeightSlider } from "./WeightSlider.tsx";
@@ -43,7 +43,11 @@ export function WeightSliderPanel({
         </Button>
       </Flex>
 
-      <Stack gap={3}>
+      <Box
+        display="grid"
+        gridTemplateColumns={{ base: "1fr", md: "1fr 1fr" }}
+        gap={3}
+      >
         {RUBRICS.map((rubric) => (
           <WeightSlider
             key={rubric}
@@ -53,7 +57,7 @@ export function WeightSliderPanel({
             colorPalette={RUBRIC_COLORS[rubric]}
           />
         ))}
-      </Stack>
+      </Box>
 
       {/* Distribution bar */}
       <Flex mt={4} h="8px" borderRadius="full" overflow="hidden">

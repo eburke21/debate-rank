@@ -52,8 +52,23 @@ export function Leaderboard({
 
   if (args.length === 0) {
     return (
-      <Box textAlign="center" py={8}>
-        <Text color="fg.muted">No scored arguments yet.</Text>
+      <Box
+        textAlign="center"
+        py={10}
+        px={6}
+        borderWidth="1px"
+        borderRadius="lg"
+        borderStyle="dashed"
+        borderColor="border"
+      >
+        <Text fontSize="3xl" mb={3}>💬</Text>
+        <Text fontWeight="semibold" fontSize="lg" mb={2}>
+          No arguments ranked yet
+        </Text>
+        <Text color="fg.muted" fontSize="sm" maxW="400px" mx="auto">
+          Submit the first argument to get it evaluated by 4 AI judges across
+          Logic, Evidence, Persuasion, and Originality.
+        </Text>
       </Box>
     );
   }

@@ -98,10 +98,16 @@ npx tsc --noEmit                 # Type-check only
 - **Charts:** Recharts for data visualization.
 - **Pure function extraction:** `redistributeWeights()` and `computeComposite()` are exported as standalone pure functions from `hooks/useWeights.ts` — testable without React, reusable outside the hook (e.g., `Leaderboard.tsx` imports `computeComposite` directly).
 - **Derived state:** Use `useMemo` for computed values like weighted rankings — never `useEffect` + `setState` (causes double-render flicker).
-- **Framer Motion:** `motion.div` with `layout` prop for animated row reordering. `LayoutGroup` coordinates siblings, `AnimatePresence` handles enter/exit.
+- **Framer Motion:** `motion.div` with `layout` prop for animated row reordering. `LayoutGroup` coordinates siblings, `AnimatePresence` handles enter/exit. Use `mode="wait"` for element swaps (spinner→score), `mode="popLayout"` for list reordering. Keyframe arrays on `animate` for one-shot pulse effects.
 - **Chakra v3 Slider API:** Compound components `Slider.Root` → `Slider.Control` → `Slider.Track` → `Slider.Range` + `Slider.Thumb`. Uses `onValueChange` (not `onChange`); value is always an array `[number]` even for single-thumb sliders.
+- **Chakra v3 Drawer API:** `Drawer.Root` → `Portal` → `Drawer.Backdrop` + `Drawer.Positioner` → `Drawer.Content`. Props: `open` (not `isOpen`), `onOpenChange={(e) => { if (!e.open) onClose() }}` (not `onClose`), `placement="end"`, `size="md"`.
+- **Chakra v3 Dialog API:** `Dialog.Root` → `Portal` → `Dialog.Backdrop` + `Dialog.Positioner` → `Dialog.Content`. Same prop pattern as Drawer. Renamed from v2's `Modal`.
+- **Chakra v3 Collapsible:** `Collapsible.Root` → `Collapsible.Trigger` → `Collapsible.Content`. Use `unmountOnExit` for performance. `asChild` on Trigger merges behavior into child element (no wrapper DOM node).
 - **Responsive design:** Chakra's responsive object syntax `display={{ base: "none", md: "block" }}` for breakpoint-based visibility.
-- **Prop drilling:** Deliberate choice for current shallow tree (3 levels). Context/Redux not needed until depth increases.
+- **`useReducer` for related state:** When multiple state values change together (e.g., polling state: status, scores, composite, isComplete, error), use `useReducer` instead of multiple `useState` calls. Batches updates into one render; `dispatch` has stable identity; satisfies ESLint `set-state-in-effect` rule.
+- **Component state machines:** Use a single `Phase` union type (`"drafting" | "scoring" | "complete"`) instead of multiple boolean flags. Eliminates impossible states. Phase transitions during render (not in `useEffect`) skip stale DOM commits.
+- **Polling pattern:** `setInterval` + `Date.now()` wall-clock timeout. Transient errors swallowed (next tick retries). Three cleanup paths: unmount (effect cleanup), terminal status (poll callback), disabled (effect early return).
+- **Prop drilling:** Deliberate choice — still works at Phase 7's depth. Each component uses its props (no pass-through intermediaries). Context would earn its keep only if overlays needed shared state.
 
 ## Project Structure
 
@@ -139,18 +145,18 @@ frontend/src/
   hooks/
     useWeights.ts    # Weight redistribution + computeComposite (pure functions + React hook)
     useLeaderboard.ts # Topic + arguments data fetching
-    useArgumentPolling.ts # (Phase 7 — live status polling)
+    useArgumentPolling.ts # useReducer-based polling (2s interval, 30s timeout, transient error resilience)
   components/
     TopicHeader.tsx          # Topic title, description, argument count badge
     WeightSlider.tsx         # Single Chakra v3 compound slider with rubric label
     WeightSliderPanel.tsx    # 4 sliders + reset button + animated distribution bar
-    LeaderboardRow.tsx       # Rank badge + body preview + mini score bars + weighted score + layout animation
+    LeaderboardRow.tsx       # Rank badge + body preview + mini score bars + weighted score + layout animation + highlight
     Leaderboard.tsx          # Weighted sort via useMemo + AnimatePresence + loading skeletons
-    ScoreRadarChart.tsx      # (Phase 7 — radar chart for argument detail)
-    JudgeCard.tsx            # (Phase 7 — judge rationale card)
-    ArgumentDetailDrawer.tsx # (Phase 7 — detail drawer)
-    SubmitArgumentModal.tsx  # (Phase 7 — submission modal)
-    ScoringProgress.tsx      # (Phase 7 — scoring progress indicator)
+    ScoreRadarChart.tsx      # Recharts RadarChart with 4 rubric axes (0-10), ResponsiveContainer
+    JudgeCard.tsx            # Rubric score + collapsible rationale (Chakra v3 Collapsible)
+    ArgumentDetailDrawer.tsx # Chakra v3 Drawer — full text, radar chart, judge cards, partial score handling
+    SubmitArgumentModal.tsx  # 3-phase state machine (drafting→scoring→complete), char counter, Chakra v3 Dialog
+    ScoringProgress.tsx      # 4 judge indicators with AnimatePresence spinner→score transitions
 ```
 
 ## Key Design Decisions
@@ -179,6 +185,12 @@ frontend/src/
 - **Client-side composite scoring:** Weighted average recomputed in `useMemo` on every weight change — no backend round-trip. Only rubrics with non-null scores contribute (handles partial-status arguments).
 - **Animated leaderboard reordering:** Framer Motion's `layout` prop on each row enables spring-based positional animation (300ms) when sort order changes from weight adjustments.
 - **Distribution bar:** CSS `flex={weight}` on colored segments provides proportional visualization of current weights; `transition="flex 0.3s ease"` animates segment size changes.
+- **Argument detail on demand:** `ArgumentDetailDrawer` fetches `GET /api/arguments/{id}` when opened (not preloaded). Resets state on close so stale data doesn't flash on reopen.
+- **Submit modal state machine:** 3-phase `drafting → scoring → complete`. Single `Phase` union type prevents impossible states. Modal close prevented during scoring phase (`handleClose` early-returns). Phase transition from scoring → complete happens during render (not `useEffect`) to skip stale DOM commits.
+- **Character counter UX:** Color-coded feedback: gray (0-49, "X more needed"), green (50-1800), yellow (1800-2000), red (>2000). Submit button disabled until 50-2000 chars.
+- **Polling for scoring progress:** `useArgumentPolling` hook uses `useReducer` + `setInterval` (2s) + `Date.now()` timeout (30s). Swallows transient errors (next tick retries). Stops on terminal status (`scored`, `partial`, `failed`). Returns `initialState` when disabled (derived state, no effect-based reset).
+- **New argument highlight:** After submission, `highlightedArgumentId` triggers blue border + Framer Motion keyframe pulse on the matching `LeaderboardRow`. Cleared after 2 seconds via `setTimeout`.
+- **Derived open state:** `!!selectedArgumentId` derives drawer's `isOpen` from a single source of truth. Avoids synchronization bugs between parallel boolean flags.
 
 ## API Endpoints
 
