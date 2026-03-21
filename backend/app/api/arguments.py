@@ -1,11 +1,12 @@
+import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.database import get_db
+from app.database import async_session, get_db
 from app.models import Argument, Topic
 from app.schemas import (
     ArgumentCreate,
@@ -17,7 +18,10 @@ from app.schemas import (
     ScoreResponse,
     TopicResponse,
 )
+from app.services.judge import evaluate_argument_all_judges
 from app.services.sanitization import sanitize_argument_body
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/arguments", tags=["arguments"])
 
@@ -98,9 +102,19 @@ async def get_argument(argument_id: UUID, db: AsyncSession = Depends(get_db)):
     )
 
 
+async def _run_judge_evaluation(argument_id: UUID, argument_body: str, topic_title: str):
+    """Background task: evaluate argument with all judges using a fresh DB session."""
+    async with async_session() as db:
+        try:
+            await evaluate_argument_all_judges(argument_id, argument_body, topic_title, db)
+        except Exception:
+            logger.exception("Judge evaluation failed for argument %s", argument_id)
+
+
 @router.post("", response_model=ArgumentSubmitResponse, status_code=202)
 async def create_argument(
     payload: ArgumentCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """Submit a new argument for evaluation."""
@@ -123,7 +137,8 @@ async def create_argument(
     await db.commit()
     await db.refresh(argument)
 
-    # TODO: dispatch judge evaluation as background task (Phase 4)
+    # Dispatch judge evaluation as background task
+    background_tasks.add_task(_run_judge_evaluation, argument.id, sanitized_body, topic.title)
 
     return ArgumentSubmitResponse(
         id=argument.id,
