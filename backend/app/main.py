@@ -5,6 +5,7 @@ from starlette.responses import JSONResponse
 
 from app.api.arguments import router as arguments_router
 from app.api.health import router as health_router
+from app.api.seed import router as seed_router
 from app.api.topics import router as topics_router
 from app.config import settings
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -23,6 +24,7 @@ app.add_middleware(RateLimitMiddleware)
 app.include_router(health_router)
 app.include_router(topics_router)
 app.include_router(arguments_router)
+app.include_router(seed_router)
 
 
 @app.exception_handler(RequestValidationError)

@@ -89,3 +89,8 @@ export async function submitArgument(
   });
   return data;
 }
+
+export async function seedDatabase(): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>("/api/seed");
+  return data;
+}

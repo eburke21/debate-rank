@@ -1,5 +1,6 @@
-import { Box, Button, Container, Flex, Skeleton, Stack, Text, Theme } from "@chakra-ui/react";
-import { useCallback, useState } from "react";
+import { Box, Button, Container, Flex, IconButton, Skeleton, Spinner, Stack, Text, Theme } from "@chakra-ui/react";
+import { useCallback, useEffect, useState } from "react";
+import { seedDatabase } from "./api/client.ts";
 import { useLeaderboard } from "./hooks/useLeaderboard.ts";
 import { useWeights } from "./hooks/useWeights.ts";
 import { useColorMode } from "./hooks/useColorMode.ts";
@@ -9,6 +10,7 @@ import { Leaderboard } from "./components/Leaderboard.tsx";
 import { ArgumentDetailDrawer } from "./components/ArgumentDetailDrawer.tsx";
 import { SubmitArgumentModal } from "./components/SubmitArgumentModal.tsx";
 import { ColorModeButton } from "./components/ColorModeButton.tsx";
+import { toaster } from "./components/toaster.ts";
 
 function App() {
   const {
@@ -27,6 +29,32 @@ function App() {
   const [highlightedArgumentId, setHighlightedArgumentId] = useState<
     string | null
   >(null);
+  const [seeding, setSeeding] = useState(false);
+
+  // Transition: seeding → done once data arrives (render-time, not effect)
+  if (seeding && topic && args.length > 0) {
+    setSeeding(false);
+  }
+
+  // Poll for new data while seeding is in progress
+  useEffect(() => {
+    if (!seeding) return;
+    const interval = setInterval(() => void refetch(), 5000);
+    return () => clearInterval(interval);
+  }, [seeding, refetch]);
+
+  const handleSeed = useCallback(async () => {
+    try {
+      setSeeding(true);
+      await seedDatabase();
+      toaster.success({
+        title: "Seeding started",
+        description: "Arguments will appear as judges finish evaluating (~2-3 min).",
+      });
+    } catch {
+      setSeeding(false);
+    }
+  }, []);
 
   const handleSubmitComplete = useCallback(
     (argumentId: string) => {
@@ -47,10 +75,22 @@ function App() {
             <Text fontSize="xs" fontWeight="bold" letterSpacing="wide" color="fg.muted" textTransform="uppercase">
               DebateRank
             </Text>
-            <ColorModeButton
-              appearance={appearance}
-              onToggle={toggleColorMode}
-            />
+            <Flex gap={1} align="center">
+              <IconButton
+                aria-label="Seed database with sample arguments"
+                variant="ghost"
+                size="sm"
+                fontSize="lg"
+                onClick={() => void handleSeed()}
+                disabled={seeding}
+              >
+                {seeding ? <Spinner size="sm" /> : "🌱"}
+              </IconButton>
+              <ColorModeButton
+                appearance={appearance}
+                onToggle={toggleColorMode}
+              />
+            </Flex>
           </Flex>
 
           {error && (
@@ -88,13 +128,18 @@ function App() {
               <Text fontWeight="semibold" fontSize="xl" mb={2}>
                 Welcome to DebateRank
               </Text>
-              <Text color="fg.muted" fontSize="sm" maxW="450px" mx="auto" mb={2}>
-                No debate topic has been set up yet. Run the seed script to add
-                a topic and sample arguments, or create one via the API.
+              <Text color="fg.muted" fontSize="sm" maxW="450px" mx="auto" mb={4}>
+                No debate topic has been set up yet. Click the seed button above
+                to add a topic and 12 sample arguments evaluated by 4 AI judges.
               </Text>
-              <Text color="fg.muted" fontSize="xs" fontFamily="mono">
-                cd backend && uv run python -m scripts.seed
-              </Text>
+              <Button
+                colorPalette="blue"
+                size="sm"
+                onClick={() => void handleSeed()}
+                disabled={seeding}
+              >
+                {seeding ? <><Spinner size="xs" mr={2} /> Seeding...</> : "🌱 Seed Database"}
+              </Button>
             </Box>
           )}
 
