@@ -67,6 +67,8 @@ npm run dev                      # Run dev server
 npm run build                    # Type-check + build
 npm run lint                     # ESLint
 npx tsc --noEmit                 # Type-check only
+npm test                         # Run all tests (15 total, Vitest)
+npm run test:watch               # Watch mode for development
 ```
 
 ## Code Conventions
@@ -108,6 +110,10 @@ npx tsc --noEmit                 # Type-check only
 - **Component state machines:** Use a single `Phase` union type (`"drafting" | "scoring" | "complete"`) instead of multiple boolean flags. Eliminates impossible states. Phase transitions during render (not in `useEffect`) skip stale DOM commits.
 - **Polling pattern:** `setInterval` + `Date.now()` wall-clock timeout. Transient errors swallowed (next tick retries). Three cleanup paths: unmount (effect cleanup), terminal status (poll callback), disabled (effect early return).
 - **Prop drilling:** Deliberate choice — still works at Phase 7's depth. Each component uses its props (no pass-through intermediaries). Context would earn its keep only if overlays needed shared state.
+- **Chakra v3 Color Mode:** No `useColorMode()` hook in v3. Custom `useColorMode` hook in `hooks/useColorMode.ts` manages state + localStorage persistence + system preference detection. Wrapped via `<Theme appearance={appearance}>` (renders a `<div>`, add `minH="100vh"`). Semantic tokens (`bg`, `fg`, `fg.muted`) auto-respond; hardcoded colors need `{ base: "red.50", _dark: "red.950" }` overrides.
+- **Chakra v3 Toaster:** `createToaster()` returns a module-level store (not a hook) — callable from non-React code like axios interceptors. `<Toaster>` component in `main.tsx` requires a children render function wrapping `<Toast.Root>`.
+- **Error toasts:** Centralized via axios response interceptor in `api/client.ts`. Handles network errors, timeouts, 429, 422 (extracts fields from error envelope), 5xx. Interceptor re-rejects so components can also show inline errors.
+- **Frontend testing:** Vitest with jsdom environment, configured in `vite.config.ts`. Setup file at `src/test/setup.ts` imports `@testing-library/jest-dom/vitest`. Pure functions tested directly (no `renderHook` needed).
 
 ## Project Structure
 
@@ -130,7 +136,7 @@ backend/
     env.py             # Customized: swaps asyncpg→psycopg2, imports Base from app.models
     versions/          # Auto-generated migration files (excluded from ruff)
   tests/
-    conftest.py        # Fixtures: db_session (rollback), client (httpx+DI override), active_topic, scored_argument
+    conftest.py        # Fixtures: db_session (rollback), client (httpx+DI override), active_topic, scored_argument, no_active_topics
     test_schemas.py    # 17 Pydantic validation tests
     test_sanitization.py # 5 sanitization unit tests
     test_database.py   # 2 integration tests (insert chain, cascade delete)
@@ -140,13 +146,18 @@ backend/
 
 frontend/src/
   theme/index.ts     # Chakra UI v3 system + rubric color tokens
-  api/client.ts      # Axios API client (4 typed fetch functions)
+  api/client.ts      # Axios API client (4 typed fetch functions) + error toast interceptor
   types/index.ts     # TypeScript types mirroring backend schemas + RUBRICS array + RUBRIC_META
+  test/setup.ts      # Vitest setup — jest-dom matchers
   hooks/
     useWeights.ts    # Weight redistribution + computeComposite (pure functions + React hook)
+    useWeights.test.ts # 15 unit tests for redistribution + composite scoring
     useLeaderboard.ts # Topic + arguments data fetching
     useArgumentPolling.ts # useReducer-based polling (2s interval, 30s timeout, transient error resilience)
+    useColorMode.ts  # Dark/light mode with localStorage persistence + system preference detection
   components/
+    toaster.ts               # Shared Chakra v3 toaster instance (module-level, not a hook)
+    ColorModeButton.tsx      # Sun/moon emoji toggle with aria-label
     TopicHeader.tsx          # Topic title, description, argument count badge
     WeightSlider.tsx         # Single Chakra v3 compound slider with rubric label
     WeightSliderPanel.tsx    # 4 sliders + reset button + animated distribution bar
@@ -191,6 +202,10 @@ frontend/src/
 - **Polling for scoring progress:** `useArgumentPolling` hook uses `useReducer` + `setInterval` (2s) + `Date.now()` timeout (30s). Swallows transient errors (next tick retries). Stops on terminal status (`scored`, `partial`, `failed`). Returns `initialState` when disabled (derived state, no effect-based reset).
 - **New argument highlight:** After submission, `highlightedArgumentId` triggers blue border + Framer Motion keyframe pulse on the matching `LeaderboardRow`. Cleared after 2 seconds via `setTimeout`.
 - **Derived open state:** `!!selectedArgumentId` derives drawer's `isOpen` from a single source of truth. Avoids synchronization bugs between parallel boolean flags.
+- **Docker `.venv` exclusion:** Backend service in `docker-compose.yml` uses `- /app/.venv` anonymous volume to prevent WatchFiles reload storm from `uv sync` inside container. Same pattern as `- /app/node_modules` for frontend.
+- **Test fixture isolation with seed data:** Transaction rollback pattern sees committed seed rows. Fixtures that need "no active topic" must explicitly deactivate existing topics within the transaction. `no_active_topics` fixture handles this; `active_topic` fixture deactivates before creating.
+- **3-tier CI pipeline:** GitHub Actions with 3 parallel jobs: backend (Python + Postgres service), frontend (Node + Vitest + build), docker (compose build). Each catches different failure categories; total CI ≈ max(job times), not sum.
+- **Architecture Decision Records:** 4 ADRs in `docs/architecture.md` — client-side ranking, parallel judge dispatch, PostgreSQL over SQLite, structured JSON output. Context → Decision → Consequences → Alternatives Considered format.
 
 ## API Endpoints
 
