@@ -2,8 +2,7 @@
 
 Multi-criteria argument ranking with LLM-as-judge evaluation.
 
-<!-- TODO: Replace with actual screenshot or GIF after recording -->
-<!-- ![DebateRank Demo](docs/demo.gif) -->
+![DebateRank](frontend/public/debate-rank.png)
 
 ## What It Does
 
