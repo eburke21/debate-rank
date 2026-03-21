@@ -74,31 +74,59 @@ function App() {
             </Stack>
           )}
 
+          {!loading && !topic && !error && (
+            <Box
+              textAlign="center"
+              py={16}
+              px={6}
+              borderWidth="1px"
+              borderRadius="lg"
+              borderStyle="dashed"
+              borderColor="border"
+            >
+              <Text fontSize="4xl" mb={4}>⚖️</Text>
+              <Text fontWeight="semibold" fontSize="xl" mb={2}>
+                Welcome to DebateRank
+              </Text>
+              <Text color="fg.muted" fontSize="sm" maxW="450px" mx="auto" mb={2}>
+                No debate topic has been set up yet. Run the seed script to add
+                a topic and sample arguments, or create one via the API.
+              </Text>
+              <Text color="fg.muted" fontSize="xs" fontFamily="mono">
+                cd backend && uv run python -m scripts.seed
+              </Text>
+            </Box>
+          )}
+
           {topic && <TopicHeader topic={topic} />}
 
-          <WeightSliderPanel
-            weights={weights}
-            onSetWeight={setWeight}
-            onReset={resetWeights}
-          />
+          {topic && (
+            <>
+              <WeightSliderPanel
+                weights={weights}
+                onSetWeight={setWeight}
+                onReset={resetWeights}
+              />
 
-          <Leaderboard
-            arguments={args}
-            weights={weights}
-            onSelectArgument={(id) => setSelectedArgumentId(id)}
-            loading={loading}
-            highlightedArgumentId={highlightedArgumentId}
-          />
+              <Leaderboard
+                arguments={args}
+                weights={weights}
+                onSelectArgument={(id) => setSelectedArgumentId(id)}
+                loading={loading}
+                highlightedArgumentId={highlightedArgumentId}
+              />
 
-          <Flex justify="center" mt={6}>
-            <Button
-              colorPalette="blue"
-              size="lg"
-              onClick={() => setIsSubmitModalOpen(true)}
-            >
-              Submit an Argument
-            </Button>
-          </Flex>
+              <Flex justify="center" mt={6}>
+                <Button
+                  colorPalette="blue"
+                  size="lg"
+                  onClick={() => setIsSubmitModalOpen(true)}
+                >
+                  Submit an Argument
+                </Button>
+              </Flex>
+            </>
+          )}
         </Container>
       </Box>
 

@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { fetchActiveTopic, fetchLeaderboard } from "../api/client.ts";
 import type { ArgumentSummary, TopicResponse } from "../types/index.ts";
@@ -19,9 +20,15 @@ export function useLeaderboard() {
       const leaderboard = await fetchLeaderboard(activeTopic.id);
       setArgs(leaderboard.arguments);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to load leaderboard";
-      setError(message);
+      // 404 on /api/topics/active means no topic exists yet — not an error
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        setTopic(null);
+        setArgs([]);
+      } else {
+        const message =
+          err instanceof Error ? err.message : "Failed to load leaderboard";
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }

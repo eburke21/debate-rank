@@ -14,5 +14,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 # Copy application source
 COPY . .
 
-# Run with uvicorn
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Railway provides $PORT; default to 8000 for local Docker
+ENV PORT=8000
+
+# Run migrations then start server
+CMD sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
