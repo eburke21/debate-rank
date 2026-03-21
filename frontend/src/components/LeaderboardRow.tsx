@@ -15,6 +15,7 @@ interface LeaderboardRowProps {
   rank: number;
   weightedScore: number;
   onClick: () => void;
+  isHighlighted?: boolean;
 }
 
 function MiniScoreBar({ scores }: { scores: ArgumentSummary["scores"] }) {
@@ -43,6 +44,7 @@ export function LeaderboardRow({
   rank,
   weightedScore,
   onClick,
+  isHighlighted,
 }: LeaderboardRowProps) {
   const bodyPreview =
     argument.body.length > 120
@@ -50,17 +52,32 @@ export function LeaderboardRow({
       : argument.body;
 
   return (
-    <motion.div layout transition={{ type: "spring", duration: 0.3 }}>
+    <motion.div
+      layout
+      transition={{ type: "spring", duration: 0.3 }}
+      animate={
+        isHighlighted
+          ? {
+              backgroundColor: [
+                "rgba(59, 130, 246, 0)",
+                "rgba(59, 130, 246, 0.15)",
+                "rgba(59, 130, 246, 0)",
+              ],
+            }
+          : {}
+      }
+    >
       <Flex
         p={3}
         borderWidth="1px"
         borderRadius="md"
+        borderColor={isHighlighted ? "blue.400" : undefined}
         cursor="pointer"
         _hover={{ bg: "bg.subtle" }}
         onClick={onClick}
         align="center"
         gap={3}
-        transition="background 0.15s ease"
+        transition="background 0.15s ease, border-color 0.3s ease"
       >
         {/* Rank badge */}
         <Badge

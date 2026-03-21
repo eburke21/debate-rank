@@ -10,6 +10,7 @@ interface LeaderboardProps {
   weights: Weights;
   onSelectArgument: (id: string) => void;
   loading?: boolean;
+  highlightedArgumentId?: string | null;
 }
 
 interface RankedArgument {
@@ -23,6 +24,7 @@ export function Leaderboard({
   weights,
   onSelectArgument,
   loading,
+  highlightedArgumentId,
 }: LeaderboardProps) {
   const ranked: RankedArgument[] = useMemo(() => {
     const withScores = args.map((arg) => ({
@@ -67,6 +69,7 @@ export function Leaderboard({
               rank={item.rank}
               weightedScore={item.weightedScore}
               onClick={() => onSelectArgument(item.argument.id)}
+              isHighlighted={item.argument.id === highlightedArgumentId}
             />
           ))}
         </Stack>
