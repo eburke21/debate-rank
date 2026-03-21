@@ -2,6 +2,7 @@ import uuid
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.config import settings
@@ -46,8 +47,23 @@ async def client(db_session):
 
 
 @pytest.fixture
+async def no_active_topics(db_session):
+    """Deactivate all active topics so tests can verify 404 behavior.
+
+    Use this fixture in tests that expect no active topic to exist.
+    """
+    await db_session.execute(update(Topic).where(Topic.is_active.is_(True)).values(is_active=False))
+    await db_session.flush()
+
+
+@pytest.fixture
 async def active_topic(db_session) -> Topic:
-    """Seed an active topic and return it."""
+    """Seed an active topic and return it.
+
+    Deactivates any existing active topics first to avoid MultipleResultsFound
+    when seed data is present in the database.
+    """
+    await db_session.execute(update(Topic).where(Topic.is_active.is_(True)).values(is_active=False))
     topic = Topic(
         id=uuid.uuid4(),
         title="Should cities ban cars from downtown?",

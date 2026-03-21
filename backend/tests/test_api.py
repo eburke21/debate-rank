@@ -14,7 +14,7 @@ class TestHealthEndpoint:
 
 
 class TestTopicsEndpoint:
-    async def test_no_active_topic_returns_404(self, client: AsyncClient):
+    async def test_no_active_topic_returns_404(self, client: AsyncClient, no_active_topics):
         response = await client.get("/api/topics/active")
         assert response.status_code == 404
 
@@ -106,7 +106,7 @@ class TestArgumentCreateEndpoint:
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
 
-    async def test_no_active_topic_returns_404(self, client: AsyncClient):
+    async def test_no_active_topic_returns_404(self, client: AsyncClient, no_active_topics):
         """POST without any active topic in DB returns 404."""
         response = await client.post(
             "/api/arguments",
