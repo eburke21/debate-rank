@@ -1,6 +1,6 @@
-# DebateRank
+# ⚖️DebateRank
 
-Multi-criteria argument ranking with LLM-as-judge evaluation.
+Multi-criteria LLM-as-judge evaluation platform. Submit debate arguments, 4 AI judges (Logic, Evidence, Persuasion, Originality) score each on a 1–10 rubric with written rationales, and a live leaderboard re-ranks in real time as you adjust weight sliders. React + FastAPI + PostgreSQL.
 
 ![DebateRank](frontend/public/debate-rank.png)
 
