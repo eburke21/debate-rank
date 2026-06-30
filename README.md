@@ -209,6 +209,25 @@ docker compose up --build        # Start db + backend + frontend
 - Frontend: http://localhost:5173
 - PostgreSQL: localhost:5432
 
+## Deployment
+
+The frontend and backend deploy as **two separate services**, each built from its own
+`Dockerfile`. They run on different origins in production, so two things must be configured
+or the frontend loads but can't reach the API (you'll see only the empty "Welcome" state and
+the Seed button will appear to do nothing):
+
+| Service | Variable | Value | Notes |
+|---|---|---|---|
+| **frontend** | `VITE_API_URL` | the backend's **public** URL (e.g. `https://your-backend.up.railway.app`) | ⚠️ **Build-time.** Vite inlines this into the JS bundle during `npm run build`, so it must be set as a **build argument** and the image **rebuilt** after any change. It is *not* read at runtime. Defaults to `http://localhost:8000` (dev only). |
+| **backend** | `CORS_ORIGINS` | the frontend's **public** URL (e.g. `https://your-frontend.up.railway.app`) | Comma-separated. Must include the exact origin (scheme + host, no trailing slash). Defaults to `http://localhost:5173`. |
+| **backend** | `DATABASE_URL` | `postgresql+asyncpg://…` | Points at the managed Postgres instance. |
+| **backend** | `ANTHROPIC_API_KEY` | your key | Required for judge evaluation (seeding inserts arguments without it, but they stay unscored). |
+
+> **Why "build-time" matters:** a static SPA has no server-side env at runtime. If you set
+> `VITE_API_URL` only as a *runtime* variable on the frontend service, the already-built bundle
+> still points at `localhost:8000`. On Railway, set it as a **build** variable / build arg and
+> trigger a redeploy so the image is rebuilt.
+
 ## Testing
 
 | Suite | Count | Command |
