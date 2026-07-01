@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     CORS_ORIGINS: str = "http://localhost:5173"
     RATE_LIMIT_PER_MINUTE: int = 10
+    # Anthropic model used by the LLM judges. Successor to the retired
+    # claude-sonnet-4-20250514 (same Sonnet tier / cost). Override via env to a
+    # model your key can access (see `GET /v1/models`), e.g. claude-haiku-4-5.
+    JUDGE_MODEL: str = "claude-sonnet-4-6"
 
     @field_validator("DATABASE_URL")
     @classmethod

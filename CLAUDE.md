@@ -184,7 +184,7 @@ frontend/src/
 - **Input sanitization:** `services/sanitization.py` — strip whitespace, strip HTML tags (regex), collapse 3+ newlines to 2, normalize unicode (NFC). No external dependencies.
 - **LeaderboardResponse wrapper:** `GET /api/arguments` returns `{topic: TopicResponse, arguments: list[ArgumentSummary]}` — not a bare list. Composite shape matching spec §5.2.
 - **API test pattern:** `httpx.AsyncClient` with `ASGITransport` + `app.dependency_overrides[get_db]` to swap in rollback session. Tests go through full ASGI stack (middleware, routing, serialization).
-- **Judge model:** `claude-sonnet-4-20250514` with 30-second per-call timeout via `asyncio.wait_for()`.
+- **Judge model:** configurable via `JUDGE_MODEL` env var (default `claude-sonnet-4-6`; must be accessible to `ANTHROPIC_API_KEY` — check `GET /v1/models`). 30-second per-call timeout via `asyncio.wait_for()`.
 - **Parallel judge dispatch:** `asyncio.gather(*tasks, return_exceptions=True)` — 4 judges run concurrently, partial failures produce partial results instead of total failure.
 - **Retry on parse failure:** If a judge's response isn't valid JSON, a correction prompt (with the error and original response) is sent once. Two consecutive failures raise `ValueError`.
 - **Status state machine:** `pending` → `scored` (4/4 succeed), `partial` (2-3/4), or `failed` (0-1/4). Composite score is the mean of successful scores (None if failed).

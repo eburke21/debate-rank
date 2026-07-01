@@ -102,7 +102,7 @@ async def scored_argument(db_session, active_topic) -> Argument:
             rubric=rubric,
             score=score,
             rationale=rationale,
-            model_id="claude-sonnet-4-20250514",
+            model_id="claude-sonnet-4-6",
         )
         db_session.add(s)
 

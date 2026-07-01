@@ -27,7 +27,7 @@ async def test_insert_topic_argument_scores(db_session):
             rubric=rubric.value,
             score=7,
             rationale=f"Test rationale for {rubric.value}.",
-            model_id="claude-sonnet-4-20250514",
+            model_id="claude-sonnet-4-6",
         )
         db_session.add(score)
 

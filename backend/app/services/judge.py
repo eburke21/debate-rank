@@ -7,12 +7,13 @@ from uuid import UUID
 from anthropic import AsyncAnthropic
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models import Argument, Score
 from app.schemas import ArgumentStatus, JudgeOutput
 
 logger = logging.getLogger(__name__)
 
-JUDGE_MODEL = "claude-sonnet-4-20250514"
+JUDGE_MODEL = settings.JUDGE_MODEL
 JUDGE_TIMEOUT_SECONDS = 30
 
 JUDGE_RUBRICS: dict[str, dict] = {
