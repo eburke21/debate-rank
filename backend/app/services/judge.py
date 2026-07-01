@@ -116,7 +116,9 @@ async def evaluate_single_judge(
     Returns (JudgeOutput, latency_ms).
     """
     if client is None:
-        client = AsyncAnthropic()
+        # Use the key from settings (loads .env locally, env vars in prod) rather
+        # than relying on the SDK's os.environ lookup, which ignores .env.
+        client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
     rubric = JUDGE_RUBRICS[rubric_name]
     user_content = EVALUATION_USER_PROMPT.format(
